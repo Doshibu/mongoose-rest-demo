@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+		<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+		<script>
+			$(document).ready(function() {
+					$('#createForm').on('submit', function(e) {
+							e.preventDefault();
+							var $this = $(this);
+							var value = $('#value').val();
+
+							if(value === '') {
+									alert('Les champs doivent être remplis');
+							}
+							else
+							{
+									$.ajax({
+											url: $this.attr('action'),
+											type: $this.attr('method'),
+											data: $this.serialize(),
+											success: function(html) {
+													if (html["status"] === "ok") {
+															addItem(html["value"], html["id"]);
+															$('#value').val('')
+													} else {
+															$('#errorField').html(html["value"]);
+															$('#errorModal').modal("show");
+													}
+											}
+									});
+							}
+					});
+			});
+
+			function addItem(value, id) {
+					var list = $('#list');
+
+					var newli = "<li class='list-group-item' id='" + id + "'>" +
+													"<div align='right' style='float:right'>" +
+															"<button class='btn btn-danger btn-xs' id='btn-" + id + "' onClick='deleteItem(this.id)'>" +
+																	"Delete" +
+															"</button>" +
+													"</div>" +
+												 "<div align='left'>" + value + "</div>" +
+											"</li>";
+					list.append(newli);
+
+			}
+
+			function showUpdateItem(id){
+				$('#'+id).attr('disabled',true);
+				id = id.split('-')[1];
+				
+				let val = $('#val-'+id).html();
+				$('#val-'+id).html('<input value="'+val+'">');
+				let btns = $('#val-'+id).parent().children('div');
+				if(btns.children()[0].id.split('-')[0] != 'btnValid'){
+					btns.prepend('<button id="btnValid-'+id+'" onclick="updateItem(this.id)" class="btn btn-success btn-xs">Valider</button>'); return;
+				}
+				$('#'+btns.children()[0].id).show();
+			}
+			
+			function updateItem(id){
+				
+				id = id.split('-')[1];
+				var x = $('#val-'+id).children('input').val();
+				
+				$.ajax({
+							url: '/values/' + id +'/'+x,
+							type: 'PUT',
+							success: function(html) {
+								var item = $('#val-' + id);
+								item.html(x);
+								$('#btnUpd-'+id).attr('disabled',false);
+								$('#btnValid-'+id).hide();
+							}
+					});	
+			}
+			
+			function deleteItem(clicked_id) {
+					var id = clicked_id.substring(4);
+					$.ajax({
+							url: '/values/' + id,
+							type: 'DELETE',
+							success: function(html) {
+									if (html["status"] === "ok") {
+											var item = $('#' + html["value"]);
+											item.remove();
+									} else {
+											$('#errorField').html(html["value"]);
+											$('#errorModal').modal("show");
+									}
+							}
+					});
+			}
+		</script>
+  </head>
+  <body>
+    <h1><%= title %></h1>
+    <form class="form-inline" align="center" id="createForm" method="post" action="/values">
+			<div class="form-group">
+				<input class="form-control" type="text" name="value" id="value" placeholder="Value" maxlength="32"/>
+				<button class="btn btn-success" type="submit" id="create">Submit</button>
+			</div>
+		</form>
+
+
+	
+  <ul class="list-group" id="list" style="width:400px">
+		<% for (v in values) {%>
+		<li><span id="val-<%= v %>"><%= values[v] %></span>
+				<div align="right" style="float:right">
+					<button id="btnUpd-<%= v %>" onclick="showUpdateItem(this.id)" class="btn btn-warning btn-xs">Update</button>
+					<button id="btn-<%= v %>" onclick="deleteItem(this.id)" class="btn btn-danger btn-xs">Delete</button>
+				</div>
+			</li>
+		<% } %>
+  </ul>
+
+  </body>
+</html>
